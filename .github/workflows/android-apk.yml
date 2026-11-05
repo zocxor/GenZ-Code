@@ -11,29 +11,46 @@ permissions:
 
 jobs:
   internal-apk:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
       ABIS: ${{ inputs.abis }}
     steps:
       - uses: actions/checkout@v4
+      - name: Locate project and check uploaded files
+        run: |
+          echo "== Top level of the repository =="; ls -la
+          DIR=$(find . -maxdepth 3 -name package.json -not -path "*/node_modules/*" -not -path "*/admin/*" -exec dirname {} \; | while read d; do [ -d "$d/android" ] && echo "$d"; done | head -1)
+          if [ -z "$DIR" ]; then echo "::error::No package.json found next to an android folder. Upload the project files (package.json, android, src ...)."; exit 1; fi
+          echo "== Project folder: $DIR =="; ls -la "$DIR"
+          MISSING=""
+          for f in package.json tsconfig.json app.json index.ts App.tsx android/gradlew android/settings.gradle android/app/build.gradle android/app/debug.keystore android/gradle/wrapper/gradle-wrapper.jar android/gradle/wrapper/gradle-wrapper.properties scripts/metro-compat.cjs scripts/security-scan.mjs shared/contentSchema.ts src/data/library.json src/data/manifest.json src/auth/firebaseConfig.json assets/icon.png; do
+            [ -e "$DIR/$f" ] || MISSING="$MISSING $f"
+          done
+          if [ -n "$MISSING" ]; then echo "::error::Missing files in $DIR:$MISSING"; exit 1; fi
+          [ -f "$DIR/package-lock.json" ] || echo "::warning::package-lock.json is missing; dependencies will be resolved without it. Upload it next to package.json for reproducible builds."
+          echo "PROJECT_DIR=$DIR" >> "$GITHUB_ENV"
       - name: Validate inputs
         run: '[[ "$ABIS" =~ ^(arm64-v8a|armeabi-v7a|x86|x86_64)(,(arm64-v8a|armeabi-v7a|x86|x86_64))*$ ]] || { echo "Invalid ABI list"; exit 1; }'
       - uses: actions/setup-node@v4
-        with: {node-version: '22', cache: npm}
+        with: {node-version: '22'}
       - uses: actions/setup-java@v4
         with: {distribution: temurin, java-version: '17'}
       - uses: android-actions/setup-android@v3
       - name: Install Android SDK components
         run: sdkmanager --install "platforms;android-36" "build-tools;36.0.0" "build-tools;35.0.0" "ndk;27.1.12297006" "cmake;3.22.1"
-      - run: npm ci
+      - name: Install dependencies
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
       - name: Quality gates
+        working-directory: ${{ env.PROJECT_DIR }}
         run: npm run typecheck && npm test && node scripts/security-scan.mjs
       - uses: gradle/actions/setup-gradle@v4
       - name: Build internal APK
-        working-directory: android
+        working-directory: ${{ env.PROJECT_DIR }}/android
         run: chmod +x gradlew && ./gradlew assembleInternal -PreactNativeArchitectures="$ABIS" --no-daemon
       - name: Verify signature, identity and permissions
+        working-directory: ${{ env.PROJECT_DIR }}
         run: |
           APK=$(ls android/app/build/outputs/apk/internal/*.apk | head -1)
           BT="$ANDROID_HOME/build-tools/36.0.0"
@@ -42,10 +59,9 @@ jobs:
           grep -q "name='com.genzmode.app' versionCode='8'" apk-report.txt
           if grep -E "permission.(CAMERA|RECORD_AUDIO|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|READ_MEDIA_IMAGES)'" apk-report.txt; then echo "Unexpected dangerous permission in APK"; exit 1; fi
           sha256sum "$APK" | tee -a apk-report.txt
+          mkdir -p "$GITHUB_WORKSPACE/apk-output" && cp "$APK" apk-report.txt "$GITHUB_WORKSPACE/apk-output/"
       - uses: actions/upload-artifact@v4
         with:
           name: genz-code-0.8.0-internal-apk
-          path: |
-            android/app/build/outputs/apk/internal/*.apk
-            apk-report.txt
+          path: apk-output/
           retention-days: 14
