@@ -1,0 +1,35 @@
+export type Term = {id:string; expression:string; full:string; meaning:string; category:string; language:string; region:string; tone:string; example:string; reply:string; caution:string; aliases:string[]; status:'Starter draft';};
+const rows = [
+['idk','IDK',"I don’t know",'The sender does not know or is unsure.','Chat','English','Global','Casual','IDK when the lecture starts.',"No worries, I’ll check.",'Can sound dismissive depending on context.'],
+['tbh','TBH','To be honest','Introduces an honest opinion.','Chat','English','Global','Casual','TBH, that lecture was helpful.','Thanks for sharing.','Honesty does not guarantee a statement is accurate.'],
+['rn','rn','Right now','At the present moment.','Chat','English','Global','Casual','I’m studying rn.','Okay, talk later.','Usually a time reference in casual chat.'],
+['ttyl','TTYL','Talk to you later','The sender plans to end this exchange for now.','Chat','English','Global','Friendly','Busy rn, ttyl.','Sure, catch you later.','Does not promise a specific time.'],
+['wyd','WYD','What are you doing?','Asks what someone is doing.','Chat','English','Global','Casual','Hey, wyd?','Working on an assignment. You?','Does not establish romantic intent.'],
+['brb','BRB','Be right back','The sender expects to return soon.','Chat','English','Global','Casual','BRB, grabbing water.','No problem.','Soon is not a precise duration.'],
+['imo','IMO','In my opinion','Marks a personal opinion.','Chat','English','Global','Neutral','IMO, we should start early.','That makes sense.','Opinion rather than verified fact.'],
+['u','u','You','A short spelling of you.','Chat','English','Global','Casual','Are u coming?','Yes, on my way.','Avoid in formal writing.'],
+['bet','bet','Okay / deal','Agreement or acknowledgment in many casual exchanges.','Social','English','US / online','Casual','Meet at six? Bet.','Cool, see you there.','Can also refer to an actual wager.'],
+['lowkey','lowkey','Somewhat / quietly','Can soften a statement or suggest something is understated.','Social','English','Online','Casual','I’m lowkey nervous.','Want to talk about it?','May mean secretly or somewhat; context matters.'],
+['cooked','cooked','In trouble / exhausted','May describe being overwhelmed, exhausted, or in difficulty.','Social','English','Online','Ambiguous','I’m cooked after that exam.','How did it go?','Could be literal cooking; do not infer distress from this word alone.'],
+['bruh','bruh','A reaction / address','A casual reaction to surprise, disbelief, or frustration.','Social','English','Online','Casual','Bruh, I missed the bus.','Oh no, another one coming?','Can sound dismissive or familiar.'],
+['sus','sus','Suspicious','Something seems questionable or suspicious.','Gaming','English','Online','Casual','That move was sus.','What seemed off?','Does not prove wrongdoing.'],
+['gg','GG','Good game','Acknowledges a game or match.','Gaming','English','Gaming','Friendly','GG, well played.','GG!','Can be used sarcastically.'],
+['afk','AFK','Away from keyboard','Temporarily not available at a computer or game.','Gaming','English','Gaming','Neutral','AFK for five minutes.','See you soon.','Usually temporary absence.'],
+['143','143','I love you','One common number-code meaning counts letters in I / love / you.','Numbers','English','Some communities','Affectionate','143 ❤️','That’s sweet of you.','Not a universal numeric code; could just be a number.'],
+['2day','2day','Today','A phonetic number-and-letter spelling of today.','Numbers','English','Online','Casual','See you 2day.','See you soon.','Informal spelling.'],
+['cry','😭','Loudly crying face','May convey sadness, laughter, overwhelm, or a dramatic reaction.','Emoji','Universal','Varies','Ambiguous','That video is so funny 😭','I know 😂','Surrounding words matter; no single guaranteed emotion.'],
+['skull','💀','Skull','Often conveys figurative laughter or shock online.','Emoji','Universal','Varies','Ambiguous','That joke 💀','That was unexpected.','Can also be literal; context is essential.'],
+['salute','🫡','Saluting face','May acknowledge a request or convey respect.','Emoji','Universal','Varies','Friendly','On it 🫡','Thanks!','Can be playful or ironic.'],
+['upside','🙃','Upside-down face','May suggest irony, awkwardness, or playful frustration.','Emoji','Universal','Varies','Ambiguous','Another deadline 🙃','That sounds like a lot.','Could be passive-aggressive; do not assume.'],
+['fyi','FYI','For your information','Introduces information that may be useful.','Work','English','Workplace','Neutral','FYI, the meeting moved.','Thanks for the update.','Tone depends on surrounding text.'],
+['eta','ETA','Estimated time of arrival','Asks or states when something or someone may arrive.','Work','English','Workplace','Neutral','What’s your ETA?','About ten minutes.','May refer to task completion in some workplaces.'],
+['eod','EOD','End of day','A deadline or time reference near the end of a day.','Work','English','Workplace','Formal','Please send it by EOD.','What time zone should I use?','Confirm exact time and time zone.'],
+['scene','kya scene hai','What’s the plan?','A casual Roman Urdu question about plans or what is happening.','Regional','Roman Urdu','Pakistan','Casual','Aaj kya scene hai?','Library chalte hain.','May ask about the situation rather than a plan.'],
+['theek','theek hai','Okay / all right','Acknowledgment or agreement in Roman Urdu.','Regional','Roman Urdu','Pakistan','Neutral','Theek hai, kal milte hain.','Theek hai.','Can convey resignation depending on tone.'],
+['acha','اچھا','Okay / good / really?','An Urdu expression whose use depends on context.','Regional','Urdu','Pakistan','Ambiguous','اچھا، پھر ملتے ہیں۔','ٹھیک ہے۔','Can signal acknowledgment, surprise, or evaluation.'],
+['yaar','yaar','Friend / casual address','A familiar form of address or expressive conversational word.','Regional','Roman Urdu','Pakistan / South Asia','Casual','Yaar, assignment reh gayi.','Koi baat nahi, mil kar karte hain.','Familiarity and appropriateness vary by relationship.'],
+['uni','uni','University','A shortened word for university.','Campus','English','UK / Pakistan / others','Casual','Heading to uni.','See you there.','Not exclusive to any one region.'],
+['fomo','FOMO','Fear of missing out','Concern that others are having experiences you are missing.','Social','English','Online','Casual','Getting FOMO from the trip photos.','We can plan something soon.','A casual label is not a clinical diagnosis.']
+];
+export const terms:Term[] = rows.map(r=>({id:r[0]!,expression:r[1]!,full:r[2]!,meaning:r[3]!,category:r[4]!,language:r[5]!,region:r[6]!,tone:r[7]!,example:r[8]!,reply:r[9]!,caution:r[10]!,aliases:[],status:'Starter draft'}));
+export const categories=['All','Chat','Social','Emoji','Numbers','Gaming','Campus','Work','Regional'];

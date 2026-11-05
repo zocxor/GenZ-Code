@@ -1,0 +1,74 @@
+{
+  "version": "0.3.0",
+  "builtAt": "2026-11-02",
+  "uniqueEntries": 8584,
+  "categories": {
+    "Numbers": 162,
+    "Chat": 1494,
+    "Regional": 961,
+    "Gaming": 853,
+    "Work": 856,
+    "Social": 1834,
+    "Emoji": 2252,
+    "Campus": 651
+  },
+  "numericContainingEntries": 219,
+  "standaloneNumericEntries": 28,
+  "statusCounts": {
+    "Source checked": 3,
+    "Authored draft": 134,
+    "Imported reference": 6209,
+    "Standard reference": 2238
+  },
+  "sourceFiles": {
+    "emoji-derived.xml": {
+      "sha256": "a4a6c1a4c341d94179cb116623c5f44c47400a5bc55da483423ef7430ecf622e",
+      "bytes": 550107
+    },
+    "telecommunications.jsonl": {
+      "sha256": "bf9d1eb4c0c7ae9e32767c8ceb1c4d788079daf014c1bf1a880a8fd0aae3ae0a",
+      "bytes": 3088970
+    },
+    "slang.jsonl": {
+      "sha256": "f7fb5004ba464e868539cf2340e75033bdf10e6d5a4a47ad73a2aee24fd57658",
+      "bytes": 109301008
+    },
+    "emoji-annotations.xml": {
+      "sha256": "14d0e9bb5003c085250df4ac7bd7ba1e26d92e74174d7a3a2f42dc16e07fb155",
+      "bytes": 296588
+    },
+    "education.jsonl": {
+      "sha256": "ebe15f1ae2a444f8765824c9e3544a0a2bafca34b7e14c8330418034f205d15e",
+      "bytes": 4562461
+    },
+    "gaming.jsonl": {
+      "sha256": "e8f1357d0dcf59c0178ba3f7c06bfcf3065bf15dc97d28c31bc162fef45d2dfb",
+      "bytes": 1813629
+    },
+    "video-games.jsonl": {
+      "sha256": "267ae40398fb97f0293cadccd32a1e4a695747a63631e54834f98c2802bccd4c",
+      "bytes": 8927889
+    },
+    "business.jsonl": {
+      "sha256": "36d8eb2e653794a5e2e447343395d3019c2245ce4b2adc95c8cb367e618f9f1c",
+      "bytes": 55922240
+    },
+    "internet.jsonl": {
+      "sha256": "6d58d6a4b0b87333ca87bd4c95bd3a13461e2e99ed6bfdbff4ae095e85985da1",
+      "bytes": 21950911
+    },
+    "sms.csv": {
+      "sha256": "8c9001929f8f5844bb38a794dca88f39e4d1f1133f73177ed68bd2be8656e7b6",
+      "bytes": 42000
+    }
+  },
+  "notes": [
+    "Category counts overlap where a term fits multiple contexts.",
+    "Emoji skin-tone variants are excluded from count inflation.",
+    "Numbers are not padded to 500 with invented meanings.",
+    "Campus/Work are domain vocabulary, not all Gen Z slang.",
+    "Regional includes regional English; this is not 500 Urdu entries.",
+    "Imported definitions require independent editorial review before public release."
+  ],
+  "librarySha256": "18d1cf322f9ce6c127131c9bb7a7661b42c109538c1df18077628891cd60e1f0"
+}

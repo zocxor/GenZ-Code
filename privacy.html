@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>GenZ Code · Privacy policy</title><link rel="icon" href="/admin/icon-64.png"/><link rel="stylesheet" href="./site.css"/></head>
+<body><main>
+<div class="brand"><img src="/admin/icon-128.png" alt="" width="48" height="48"/>GenZ Code</div>
+<div class="card">
+<h1>Privacy policy</h1>
+<p class="muted">Draft for publisher approval · prepared 5 November 2026 for app version 0.8.0. Items marked <span class="todo">PUBLISHER</span> must be completed by the app publisher before release.</p>
+
+<h2>Who we are</h2>
+<p>GenZ Code is published by <span class="todo">PUBLISHER: legal name and address</span>. Privacy contact: <span class="todo">PUBLISHER: privacy e-mail</span>.</p>
+
+<h2>The short version</h2>
+<ul>
+<li>Messages you decode are processed only on your device. They are never saved, logged or sent anywhere, and are cleared when the app goes to the background.</li>
+<li>You can use GenZ Code without an account. Your learning data then stays on your device.</li>
+<li>If you create an account, your learning data is backed up to your account so it survives reinstalling and syncs between your devices.</li>
+<li>We do not use advertising, advertising IDs, third-party analytics or AI providers, and we do not sell or share personal data.</li>
+</ul>
+
+<h2>What we collect and why</h2>
+<table>
+<tr><th>Data</th><th>Where it is kept</th><th>Purpose</th></tr>
+<tr><td>Nickname, avatar choice, saved words, quiz scores and round history, word-review schedule, streak days</td><td>Your device. If signed in: also your account (Google Cloud Firestore)</td><td>Provide learning features; back up and sync across your devices</td></tr>
+<tr><td>Profile photo (optional)</td><td>Your device only — never uploaded</td><td>Show your own profile picture</td></tr>
+<tr><td>Recently viewed words; search history (off by default)</td><td>Your device only — never uploaded</td><td>Help you find words again</td></tr>
+<tr><td>E-mail address and password</td><td>Firebase Authentication (Google). Your e-mail is also kept in a support directory visible only to authorised support staff</td><td>Sign-in, account recovery, support and deletion requests. We never see or store your password</td></tr>
+<tr><td>Account metadata: sign-up date, last-active day, app version, platform, summary counts (e.g. number of saved words)</td><td>Your account record</td><td>Operate the service, measure aggregate usage (e.g. daily active accounts), support</td></tr>
+<tr><td>Word suggestions, content reports, feedback you choose to send (with your account ID)</td><td>Our database</td><td>Improve the dictionary and the app; prevent abuse</td></tr>
+<tr><td>Security events (e.g. “session expired”, “sign-in succeeded after failed attempts”) with account ID, app version and platform</td><td>Our database</td><td>Detect and prevent abuse and account attacks</td></tr>
+</table>
+<p>We do not collect contacts, location, camera or microphone data, device identifiers, IP-based location or the content of your messages. Choosing a profile photo uses the system photo picker; the app does not get access to your other photos.</p>
+
+<h2>How long we keep data</h2>
+<table>
+<tr><th>Data</th><th>Retention</th></tr>
+<tr><td>Data on your device</td><td>Until you delete it in the app (Threat Shield → Your data) or uninstall the app. Device backups are disabled for GenZ Code, so uninstalling removes data that is not in an account.</td></tr>
+<tr><td>Account learning data and support directory entry</td><td>Until you delete your account; then deleted immediately.</td></tr>
+<tr><td>Account record after deletion</td><td>A minimal marker (account ID and deletion time, no other personal data) is kept until the sign-in account deletion is confirmed, then removed — target within 30 days.</td></tr>
+<tr><td>Pending suggestions, reports and feedback</td><td>Deleted when you delete your account. Otherwise reviewed and deleted when no longer needed <span class="todo">PUBLISHER: confirm review period, e.g. 12 months</span>. Accepted suggestions become dictionary content without your account ID.</td></tr>
+<tr><td>Security events</td><td>Automatically deleted after 90 days.</td></tr>
+<tr><td>Administrator audit logs (staff actions only)</td><td>Automatically deleted after 365 days.</td></tr>
+<tr><td>Backups</td><td><span class="todo">PUBLISHER: state the configured Firestore backup / point-in-time recovery retention (recommended: 7–14 days)</span>. Deleted data may remain in backups until they expire.</td></tr>
+</table>
+
+<h2>Deleting your data</h2>
+<ul>
+<li>On your device: <em>You → Threat Shield → Delete all data on this device</em>.</li>
+<li>Your account and its cloud data: <em>You → My account → Delete account and cloud data</em>, or on the web at <a href="./delete-account.html">delete-account.html</a>.</li>
+</ul>
+
+<h2>Security</h2>
+<p>All connections use HTTPS/TLS. Your sign-in session is stored in the device’s encrypted secure storage. Access to account data is restricted by server-side security rules: only you can read your learning data; a small number of authorised staff can view account records for support, using two-step verification, and every staff action is logged. No system is perfectly secure; we will notify affected users of a breach as required by law.</p>
+
+<h2>Children</h2>
+<p>Accounts are intended for people aged 13 and over <span class="todo">PUBLISHER: confirm minimum age and target audience for Google Play Families policy</span>. The dictionary and games work without an account.</p>
+
+<h2>Your rights</h2>
+<p>You can access (export), correct and delete your data in the app, and contact us for any other request. Depending on where you live you may have additional rights, including complaining to a data-protection authority.</p>
+
+<h2>Service providers</h2>
+<p>Google Firebase (Authentication, Cloud Firestore, Hosting) processes data on our behalf. <span class="todo">PUBLISHER: confirm Firestore region and any international transfer basis</span>.</p>
+
+<h2>Changes</h2>
+<p>We will update this page and the date above when this policy changes.</p>
+</div>
+</main></body></html>

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><meta name="robots" content="noindex"/><title>GenZ Code · Delete your account</title><link rel="icon" href="/admin/icon-64.png"/><link rel="stylesheet" href="./site.css"/></head>
+<body><main>
+<div class="brand"><img src="/admin/icon-128.png" alt="" width="48" height="48"/>GenZ Code</div>
+<div class="card">
+<h1>Delete your GenZ Code account</h1>
+<p>You can delete your account without reinstalling the app. This permanently deletes:</p>
+<ul><li>your synced learning data (saved words, scores, review progress, profile name and avatar choice),</li><li>your pending word suggestions, reports and feedback,</li><li>your support directory entry and your sign-in account.</li></ul>
+<p class="muted">Kept: security events without personal details (auto-deleted after 90 days) and, until deletion is confirmed, a marker with only your account ID. Learning data stored only on a phone is removed in the app (<em>You → Threat Shield → Delete all data on this device</em>) or by uninstalling. See the <a href="./privacy.html">privacy policy</a>.</p>
+<p>Prefer to do it in the app? Open <em>You → My account → Delete account and cloud data</em>. Can’t sign in? E-mail <span class="todo">PUBLISHER: support e-mail</span> from your account address with the subject “Delete my account”.</p>
+</div>
+<form class="card" id="form" autocomplete="on">
+<h2>Sign in to confirm</h2>
+<div id="msg" role="status"></div>
+<label>E-mail<input id="email" type="email" autocomplete="username" required maxlength="254"/></label>
+<label>Password<input id="password" type="password" autocomplete="current-password" required maxlength="4096"/></label>
+<label class="check"><input id="confirm" type="checkbox" required/> I understand this permanently deletes my GenZ Code account and its cloud data.</label>
+<button id="submit" class="danger" type="submit">Delete my account</button>
+</form>
+<script type="module" src="./deleteAccount.ts"></script>
+</main></body></html>
