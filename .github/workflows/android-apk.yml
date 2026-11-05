@@ -44,6 +44,8 @@ jobs:
       - uses: actions/setup-java@v4
         with: {distribution: temurin, java-version: '17'}
       - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
       - name: Install Android SDK components
         run: sdkmanager --install "platforms;android-36" "build-tools;36.0.0" "build-tools;35.0.0" "ndk;27.1.12297006" "cmake;3.22.1"
       - name: Install dependencies
@@ -56,19 +58,24 @@ jobs:
       - name: Build internal APK
         working-directory: ${{ env.PROJECT_DIR }}/android
         run: chmod +x gradlew && ./gradlew assembleInternal -PreactNativeArchitectures="$ABIS" --no-daemon
-      - name: Verify signature, identity and permissions
+      - name: Collect APK
         working-directory: ${{ env.PROJECT_DIR }}
+        run: mkdir -p "$GITHUB_WORKSPACE/apk-output" && cp android/app/build/outputs/apk/internal/*.apk "$GITHUB_WORKSPACE/apk-output/" && ls -la "$GITHUB_WORKSPACE/apk-output"
+      - name: Verify signature, identity and permissions
+        working-directory: ${{ github.workspace }}/apk-output
         run: |
-          APK=$(ls android/app/build/outputs/apk/internal/*.apk | head -1)
+          APK=$(ls *.apk | head -1)
           BT="$ANDROID_HOME/build-tools/36.0.0"
-          "$BT/apksigner" verify --print-certs "$APK" | head -4
-          "$BT/aapt" dump badging "$APK" | grep -E "^package:|uses-permission" | tee apk-report.txt
-          grep -q "name='com.genzmode.app' versionCode='8'" apk-report.txt
-          if grep -E "permission.(CAMERA|RECORD_AUDIO|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|READ_MEDIA_IMAGES)'" apk-report.txt; then echo "Unexpected dangerous permission in APK"; exit 1; fi
+          AAPT="$BT/aapt2"; [ -x "$AAPT" ] || AAPT="$BT/aapt"
+          "$BT/apksigner" verify --print-certs "$APK" | head -4 | tee apk-report.txt
+          "$AAPT" dump badging "$APK" | grep -E "^package:|uses-permission" | tee -a apk-report.txt
           sha256sum "$APK" | tee -a apk-report.txt
-          mkdir -p "$GITHUB_WORKSPACE/apk-output" && cp "$APK" apk-report.txt "$GITHUB_WORKSPACE/apk-output/"
+          grep -q "name='com.genzmode.app' versionCode='8'" apk-report.txt
+          if grep -E "permission.(CAMERA|RECORD_AUDIO|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|READ_MEDIA_IMAGES)'" apk-report.txt; then echo "::error::Unexpected dangerous permission in APK"; exit 1; fi
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: genz-code-0.8.0-internal-apk
           path: apk-output/
+          if-no-files-found: warn
           retention-days: 14
