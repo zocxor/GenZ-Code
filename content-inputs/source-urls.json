@@ -1,0 +1,12 @@
+{
+  "slang.jsonl": "https://kaikki.org/dictionary/English/tags/AH/slang/kaikki.org-dictionary-English-tag-slang.jsonl",
+  "internet.jsonl": "https://kaikki.org/dictionary/English/tags/V-/Internet/kaikki.org-dictionary-English-tag-Internet.jsonl",
+  "business.jsonl": "https://kaikki.org/dictionary/English/topics/Ed/business/kaikki.org-dictionary-English-topic-business.jsonl",
+  "education.jsonl": "https://kaikki.org/dictionary/English/topics/aL/education/kaikki.org-dictionary-English-topic-education.jsonl",
+  "gaming.jsonl": "https://kaikki.org/dictionary/English/topics/hR/gaming/kaikki.org-dictionary-English-topic-gaming.jsonl",
+  "telecommunications.jsonl": "https://kaikki.org/dictionary/English/topics/cX/telecommunications/kaikki.org-dictionary-English-topic-telecommunications.jsonl",
+  "video-games.jsonl": "https://kaikki.org/dictionary/English/topics/Xt/video-games/kaikki.org-dictionary-English-topic-video-games.jsonl",
+  "sms.csv": "https://huggingface.co/datasets/willwade/txt-sms-abbreviations/resolve/main/sms.csv",
+  "emoji-annotations.xml": "https://raw.githubusercontent.com/unicode-org/cldr/main/common/annotations/en.xml",
+  "emoji-derived.xml": "https://raw.githubusercontent.com/unicode-org/cldr/main/common/annotationsDerived/en.xml"
+}

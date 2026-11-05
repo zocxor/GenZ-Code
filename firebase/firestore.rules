@@ -1,0 +1,360 @@
+rules_version = '2';
+// GenZ Code — Firestore security rules (v0.8).
+// Deny by default. Every allow rule below states who may do what, and validates the data.
+// MUST pass `npm run test:rules` (Firestore emulator) before `firebase deploy --only firestore:rules`.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- identity ----------
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+    function isOwner(userId) { return signedIn() && me() == userId; }
+    function userPath(userId) { return /databases/$(database)/documents/users/$(userId); }
+    function accountActive(userId) { return exists(userPath(userId)) && get(userPath(userId)).data.status == 'active'; }
+    function deletedAfter(userId) { return getAfter(userPath(userId)).data.status == 'deleted'; }
+
+    // ---------- administrators (role in admins/{uid}; MFA required) ----------
+    // Admin access requires a second factor (Identity Platform TOTP/SMS). Set to false ONLY
+    // in the emulator; production deployments must keep it true.
+    function adminMfaRequired() { return true; }
+    function adminPath() { return /databases/$(database)/documents/admins/$(me()); }
+    function isAdmin() {
+      return signedIn()
+        && (!adminMfaRequired() || ('sign_in_second_factor' in request.auth.token.firebase))
+        && exists(adminPath())
+        && get(adminPath()).data.active == true;
+    }
+    function hasRole(roles) { return isAdmin() && get(adminPath()).data.role in roles; }
+    function myRole() { return get(adminPath()).data.role; }
+    function ALL_ADMIN() { return ['super_admin', 'content_manager', 'moderator', 'support_admin', 'analyst']; }
+    function CONTENT_EDIT() { return ['super_admin', 'content_manager']; }
+    function MODERATE() { return ['super_admin', 'content_manager', 'moderator']; }
+    function SUSPEND() { return ['super_admin', 'moderator', 'support_admin']; }
+    function PII() { return ['super_admin', 'support_admin']; }
+
+    // ---------- audit enforcement ----------
+    // Privileged writes must be committed in the same batch as an audit log entry that names
+    // this actor, this target and this exact request time. Skipping the log fails the write.
+    function auditOk(auditId, target) {
+      let p = /databases/$(database)/documents/auditLogs/$(auditId);
+      return auditId is string && existsAfter(p)
+        && getAfter(p).data.actor == me()
+        && getAfter(p).data.at == request.time
+        && getAfter(p).data.target == target;
+    }
+    function audited(target) { return auditOk(request.resource.data.lastAuditId, target); }
+
+    // ---------- validation helpers ----------
+    function str(v, min, max) { return v is string && v.size() >= min && v.size() <= max; }
+    function count(v, max) { return v is int && v >= 0 && v <= max; }
+    function day(v) { return v is string && v.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'); }
+    function expiresIn(v, days) { return v is timestamp && v > request.time + duration.value(days - 1, 'd') && v < request.time + duration.value(days + 1, 'd'); }
+    function CATEGORIES() { return ['Chat', 'Numbers', 'Social', 'Emoji', 'Gaming', 'Campus', 'Work', 'Regional']; }
+    function LANGS() { return ['English', 'Roman Urdu', 'Urdu', 'Universal']; }
+    function PLATFORMS() { return ['android', 'ios', 'web']; }
+    function ugcLimited() { return getAfter(/databases/$(database)/documents/users/$(me())/limits/ugc).data.last == request.time; }
+    function ugcEnabled() {
+      let c = /databases/$(database)/documents/config/app;
+      return !exists(c) || get(c).data.ugcEnabled != false;
+    }
+
+    // ===================== user accounts =====================
+    function validStats(s) {
+      return s is map && s.keys().hasOnly(['saved', 'quizzes', 'levels', 'reviewed', 'streak', 'xp'])
+        && count(s.saved, 10000) && count(s.quizzes, 100000) && count(s.levels, 100)
+        && count(s.reviewed, 10000) && count(s.streak, 1000) && count(s.xp, 1000000);
+    }
+    function validActivity(d) {
+      return day(d.lastActiveDay) && str(d.appVersion, 1, 20) && d.platform in PLATFORMS() && validStats(d.stats);
+    }
+    function ownerTombstone() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['status', 'deletedAt', 'updatedAt'])
+        && d.status == 'deleted' && d.deletedAt == request.time && d.updatedAt == request.time;
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId)
+        && request.resource.data.keys().hasOnly(['status', 'createdAt', 'updatedAt', 'lastActiveAt', 'lastActiveDay', 'appVersion', 'platform', 'stats', 'schema'])
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.lastActiveAt == request.time
+        && request.resource.data.schema == 1
+        && validActivity(request.resource.data);
+      allow update: if
+        // Owner: activity + stats only, active accounts, at most every 20 s. Never status.
+        (isOwner(userId) && resource.data.status == 'active'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastActiveAt', 'updatedAt', 'lastActiveDay', 'stats', 'appVersion', 'platform'])
+          && request.resource.data.lastActiveAt == request.time
+          && request.resource.data.updatedAt == request.time
+          && request.time > resource.data.updatedAt + duration.value(20, 's')
+          && validActivity(request.resource.data))
+        // Owner: self-deletion tombstone (also allowed for suspended accounts).
+        || (isOwner(userId) && ownerTombstone())
+        // Staff: suspend / reactivate with a reason, audited.
+        || (hasRole(SUSPEND()) && resource.data.status in ['active', 'suspended']
+          && request.resource.data.status in ['active', 'suspended']
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'statusReason', 'statusUpdatedAt', 'statusUpdatedBy', 'lastAuditId', 'updatedAt'])
+          && str(request.resource.data.statusReason, 1, 200)
+          && request.resource.data.statusUpdatedAt == request.time
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.statusUpdatedBy == me()
+          && audited('users/' + userId))
+        // Staff: process a deletion request (tombstone), audited.
+        || (hasRole(PII())
+          && request.resource.data.keys().hasOnly(['status', 'deletedAt', 'updatedAt', 'deletedBy', 'lastAuditId'])
+          && request.resource.data.status == 'deleted'
+          && request.resource.data.deletedAt == request.time
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.deletedBy == me()
+          && audited('users/' + userId));
+      // Purge a tombstone after the Authentication account is confirmed deleted.
+      allow delete: if hasRole(['super_admin']) && resource.data.status == 'deleted';
+
+      // Learning data. Owner only (support/super admins may read for support cases).
+      match /sync/{domain} {
+        function validSync() {
+          let d = request.resource.data;
+          return d.v == 3 && d.updatedAt == request.time && (
+            domain == 'profile' ? (d.keys().hasOnly(['profile', 'prefs', 'v', 'updatedAt'])
+                && d.profile is map && d.profile.keys().hasOnly(['name', 'avatar', 'u'])
+                && str(d.profile.name, 1, 24) && d.profile.avatar is int && d.profile.avatar >= 0 && d.profile.avatar <= 5
+                && d.prefs is map && d.prefs.keys().hasOnly(['language', 'quizCategory', 'u']))
+            : domain == 'saved' ? (d.keys().hasOnly(['items', 'v', 'updatedAt']) && d.items is map && d.items.size() <= 10000)
+            : domain == 'progress' ? (d.keys().hasOnly(['items', 'resetAt', 'v', 'updatedAt']) && d.items is map && d.items.size() <= 10000 && d.resetAt is number)
+            : (d.keys().hasOnly(['best', 'attempts', 'days', 'resetAt', 'v', 'updatedAt'])
+                && d.best is map && d.best.size() <= 400 && d.attempts is map && d.attempts.size() <= 200
+                && d.days is map && d.days.size() <= 400 && d.resetAt is number));
+        }
+        allow read: if isOwner(userId) || hasRole(PII());
+        allow create, update: if isOwner(userId) && accountActive(userId)
+          && domain in ['profile', 'saved', 'progress', 'scores']
+          && validSync()
+          && (resource == null || request.time > resource.data.updatedAt + duration.value(2, 's'));
+        allow delete: if (isOwner(userId) || hasRole(PII())) && deletedAfter(userId);
+      }
+
+      // Server-checked rate-limit stamps for user submissions and security events.
+      match /limits/{kind} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && kind in ['ugc', 'sec']
+          && request.resource.data.keys().hasOnly(['last'])
+          && request.resource.data.last == request.time
+          && (resource == null || request.time > resource.data.last + duration.value(kind == 'ugc' ? 60 : 10, 's'));
+        allow delete: if (isOwner(userId) || hasRole(PII())) && deletedAfter(userId);
+      }
+
+      // Support notes (staff only, append-only, audited).
+      match /supportNotes/{noteId} {
+        allow read: if hasRole(PII());
+        allow create: if hasRole(PII())
+          && request.resource.data.keys().hasOnly(['text', 'author', 'at', 'lastAuditId'])
+          && str(request.resource.data.text, 1, 1000)
+          && request.resource.data.author == me()
+          && request.resource.data.at == request.time
+          && audited('users/' + userId);
+        allow update: if false;
+        allow delete: if hasRole(['super_admin']);
+      }
+    }
+
+    // E-mail directory for support look-ups. Owner writes its own verified token e-mail only.
+    match /directory/{userId} {
+      allow get: if isOwner(userId) || hasRole(PII());
+      allow list: if hasRole(PII());
+      allow create: if isOwner(userId)
+        && request.resource.data.keys().hasOnly(['email', 'createdAt'])
+        && request.auth.token.email is string
+        && request.resource.data.email == request.auth.token.email.lower()
+        && request.resource.data.createdAt == request.time;
+      allow update: if false;
+      allow delete: if (isOwner(userId) || hasRole(PII())) && deletedAfter(userId);
+    }
+
+    // ===================== administration =====================
+    match /admins/{adminId} {
+      // An admin can read their own record (the portal needs it to know the role);
+      // only super admins list or change roles, never their own record.
+      allow get: if isOwner(adminId) || hasRole(['super_admin']);
+      allow list: if hasRole(['super_admin']);
+      allow create, update: if hasRole(['super_admin']) && adminId != me()
+        && request.resource.data.keys().hasOnly(['role', 'active', 'email', 'updatedAt', 'updatedBy', 'lastAuditId'])
+        && request.resource.data.role in ALL_ADMIN()
+        && request.resource.data.active is bool
+        && str(request.resource.data.email, 3, 254)
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.updatedBy == me()
+        && audited('admins/' + adminId);
+      allow delete: if false;
+    }
+
+    match /auditLogs/{logId} {
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly(['actor', 'role', 'action', 'target', 'summary', 'at', 'expireAt'])
+        && request.resource.data.actor == me()
+        && request.resource.data.role == myRole()
+        && request.resource.data.at == request.time
+        && request.resource.data.action in ['admin.login', 'admin.role.set', 'user.suspend', 'user.reactivate', 'user.delete', 'user.note', 'content.create', 'content.update', 'content.submit_review', 'content.publish', 'content.archive', 'content.rollback', 'content.import', 'submission.accept', 'submission.reject', 'report.resolve', 'report.dismiss', 'feedback.triage', 'config.update']
+        && str(request.resource.data.target, 1, 200)
+        && str(request.resource.data.summary, 0, 300)
+        && expiresIn(request.resource.data.expireAt, 365);
+      allow read: if hasRole(['super_admin']);
+      allow update, delete: if false;
+    }
+
+    match /securityEvents/{eventId} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['uid', 'type', 'detail', 'platform', 'appVersion', 'at', 'expireAt'])
+        && request.resource.data.uid == me()
+        && request.resource.data.type in ['login_succeeded_after_failures', 'session_expired', 'reauth_failed', 'sync_permission_denied', 'sync_blocked_account_status', 'content_validation_rejected', 'account_deletion_started', 'admin_access_denied']
+        && str(request.resource.data.detail, 0, 80)
+        && request.resource.data.platform in PLATFORMS()
+        && str(request.resource.data.appVersion, 1, 20)
+        && request.resource.data.at == request.time
+        && expiresIn(request.resource.data.expireAt, 90)
+        && getAfter(/databases/$(database)/documents/users/$(me())/limits/sec).data.last == request.time;
+      allow read: if hasRole(['super_admin']);
+      allow update, delete: if false;
+    }
+
+    // Public app flags (no secrets). Super admins change them, audited.
+    match /config/{docId} {
+      allow get: if true;
+      allow list: if false;
+      allow create, update: if hasRole(['super_admin']) && docId == 'app'
+        && request.resource.data.keys().hasOnly(['ugcEnabled', 'contentUpdatesEnabled', 'minSupportedVersion', 'updatedAt', 'updatedBy', 'lastAuditId'])
+        && request.resource.data.ugcEnabled is bool
+        && request.resource.data.contentUpdatesEnabled is bool
+        && str(request.resource.data.minSupportedVersion, 1, 20)
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.updatedBy == me()
+        && audited('config/app');
+      allow delete: if false;
+    }
+
+    // ===================== content =====================
+    function validEntryFields(d, id) {
+      return d.id == id && id.matches('^[a-z0-9][a-z0-9_-]{0,79}$')
+        && str(d.term, 1, 60) && str(d.full, 1, 120) && str(d.meaning, 1, 500) && str(d.example, 0, 300)
+        && d.category in CATEGORIES() && str(d.subcategory, 0, 40)
+        && d.variations is list && d.variations.size() <= 20
+        && str(d.region, 0, 80) && str(d.tone, 0, 60) && d.language in LANGS()
+        && d.sensitivity in ['None', 'Caution'] && str(d.caution, 0, 300)
+        && d.version is int && d.version >= 1;
+    }
+    function contentPath(id) { return /databases/$(database)/documents/content/$(id); }
+    function publishedPath(id) { return /databases/$(database)/documents/publishedContent/$(id); }
+
+    // Working copies (drafts, review, history). Staff only.
+    match /content/{id} {
+      function validContent() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['id', 'term', 'full', 'meaning', 'example', 'category', 'subcategory', 'variations', 'region', 'tone', 'language', 'sensitivity', 'caution', 'status', 'version', 'createdAt', 'updatedAt', 'updatedBy', 'lastAuditId'])
+          && validEntryFields(d, id)
+          && d.status in ['draft', 'in_review', 'published', 'archived']
+          && d.updatedAt == request.time && d.updatedBy == me()
+          && existsAfter(/databases/$(database)/documents/content/$(id)/versions/$(string(d.version)))
+          && audited('content/' + id);
+      }
+      // Publishing requires review first, and must write the public copy in the same batch.
+      function publishRule() {
+        let d = request.resource.data;
+        return d.status != 'published' || (
+          resource != null && resource.data.status in ['in_review', 'published']
+          && getAfter(publishedPath(id)).data.version == d.version
+          && getAfter(publishedPath(id)).data.status == 'published');
+      }
+      allow read: if hasRole(['super_admin', 'content_manager', 'moderator', 'analyst']);
+      allow create: if hasRole(CONTENT_EDIT()) && validContent()
+        && request.resource.data.version == 1
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.status in ['draft', 'in_review'];
+      allow update: if hasRole(CONTENT_EDIT()) && validContent() && publishRule()
+        && request.resource.data.version == resource.data.version + 1
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false; // archive instead (keeps history)
+
+      // Immutable version history (rollback = new version from an old snapshot).
+      match /versions/{v} {
+        allow read: if hasRole(['super_admin', 'content_manager', 'moderator', 'analyst']);
+        allow create: if hasRole(CONTENT_EDIT())
+          && v == string(getAfter(contentPath(id)).data.version)
+          && request.resource.data.keys().hasOnly(['snapshot', 'by', 'at', 'action'])
+          && request.resource.data.snapshot is map
+          && request.resource.data.by == me()
+          && request.resource.data.at == request.time
+          && request.resource.data.action in ['create', 'update', 'submit_review', 'publish', 'archive', 'rollback', 'import'];
+        allow update, delete: if false;
+      }
+    }
+
+    // Public, published content consumed by the app. Drafts never appear here.
+    match /publishedContent/{id} {
+      allow get, list: if resource.data.status in ['published', 'archived'];
+      allow create, update: if hasRole(CONTENT_EDIT())
+        && request.resource.data.keys().hasOnly(['id', 'term', 'full', 'meaning', 'example', 'category', 'subcategory', 'variations', 'region', 'tone', 'language', 'sensitivity', 'caution', 'status', 'version', 'updatedAt'])
+        && validEntryFields(request.resource.data, id)
+        && request.resource.data.status in ['published', 'archived']
+        && request.resource.data.updatedAt == request.time
+        && getAfter(contentPath(id)).data.version == request.resource.data.version
+        && getAfter(contentPath(id)).data.status == request.resource.data.status
+        && auditOk(getAfter(contentPath(id)).data.lastAuditId, 'content/' + id);
+      allow delete: if false;
+    }
+
+    // ===================== user submissions =====================
+    match /submissions/{id} {
+      allow create: if signedIn() && accountActive(me()) && ugcEnabled() && ugcLimited()
+        && request.resource.data.keys().hasOnly(['term', 'meaning', 'example', 'category', 'uid', 'status', 'createdAt'])
+        && request.resource.data.uid == me() && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && str(request.resource.data.term, 1, 60) && str(request.resource.data.meaning, 1, 500)
+        && str(request.resource.data.example, 0, 300) && request.resource.data.category in CATEGORIES();
+      allow read: if (signedIn() && resource.data.uid == me()) || hasRole(MODERATE());
+      allow update: if hasRole(MODERATE()) && resource.data.status == 'pending'
+        && request.resource.data.status in ['accepted', 'rejected']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'reviewedBy', 'reviewedAt', 'contentId', 'lastAuditId'])
+        && request.resource.data.reviewedBy == me() && request.resource.data.reviewedAt == request.time
+        && audited('submissions/' + id);
+      allow delete: if signedIn() && resource.data.uid == me() && deletedAfter(me());
+    }
+
+    match /reports/{id} {
+      allow create: if signedIn() && accountActive(me()) && ugcEnabled() && ugcLimited()
+        && request.resource.data.keys().hasOnly(['termId', 'reason', 'note', 'uid', 'status', 'createdAt'])
+        && request.resource.data.uid == me() && request.resource.data.status == 'open'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.termId is string && request.resource.data.termId.matches('^[a-z0-9][a-z0-9_-]{0,79}$')
+        && request.resource.data.reason in ['Wrong meaning', 'Offensive or harmful', 'Outdated', 'Spelling or formatting', 'Other']
+        && str(request.resource.data.note, 0, 300);
+      allow read: if (signedIn() && resource.data.uid == me()) || hasRole(MODERATE());
+      allow update: if hasRole(MODERATE()) && resource.data.status == 'open'
+        && request.resource.data.status in ['resolved', 'dismissed']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'resolvedBy', 'resolvedAt', 'resolution', 'lastAuditId'])
+        && request.resource.data.resolvedBy == me() && request.resource.data.resolvedAt == request.time
+        && str(request.resource.data.resolution, 0, 300)
+        && audited('reports/' + id);
+      allow delete: if signedIn() && resource.data.uid == me() && deletedAfter(me());
+    }
+
+    match /feedback/{id} {
+      allow create: if signedIn() && ugcLimited()
+        && request.resource.data.keys().hasOnly(['rating', 'message', 'appVersion', 'platform', 'uid', 'status', 'createdAt'])
+        && request.resource.data.uid == me() && request.resource.data.status == 'new'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.rating is int && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
+        && str(request.resource.data.message, 0, 1000) && str(request.resource.data.appVersion, 1, 20)
+        && request.resource.data.platform in PLATFORMS();
+      allow read: if (signedIn() && resource.data.uid == me()) || hasRole(['super_admin', 'support_admin', 'analyst']);
+      allow update: if hasRole(['super_admin', 'support_admin']) && resource.data.status == 'new'
+        && request.resource.data.status == 'triaged'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'triagedBy', 'triagedAt', 'lastAuditId'])
+        && request.resource.data.triagedBy == me() && request.resource.data.triagedAt == request.time
+        && audited('feedback/' + id);
+      allow delete: if signedIn() && resource.data.uid == me() && deletedAfter(me());
+    }
+  }
+}
