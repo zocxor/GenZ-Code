@@ -1,0 +1,5 @@
+{
+  "checked": 31,
+  "findings": [],
+  "note": "Targeted source scan only. Firebase client API key is expected public configuration; this is not a penetration test."
+}

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1095502586634",
+    "project_id": "gen-z-code-55caf",
+    "storage_bucket": "gen-z-code-55caf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1095502586634:android:8ef281af94bb42a27cd0f3",
+        "android_client_info": {
+          "package_name": "com.genzmode.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_dT8w19LS2PBO1N06T4quoPduGKk5kjs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

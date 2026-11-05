@@ -1,0 +1,13 @@
+{
+  "version": "0.5.0-internal",
+  "versionCode": 5,
+  "bytes": 26331712,
+  "sha256": "0214c10bbc41933adf692fbb5814b919df9dbc7a516aefc9244eda6e13f99151",
+  "signature_verified": true,
+  "architecture": "arm64-v8a",
+  "firebase_project": "gen-z-code-55caf",
+  "secure_store_module_in_apk": true,
+  "device_install_tested": false,
+  "live_auth_flows_tested": false,
+  "production_release": false
+}

@@ -1,0 +1,16 @@
+GenZ Code production release BLOCKED
+• owner: missing completion evidence
+• contentEditorialReview: missing completion evidence
+• physicalAndroidQA: missing completion evidence
+• accessibilityQA: missing completion evidence
+• dependencyReview: missing completion evidence
+• privacyAndTerms: missing completion evidence
+• authentication: missing completion evidence
+• backendAndCMS: missing completion evidence
+• aiGateway: missing completion evidence
+• monitoring: missing completion evidence
+• storeSigning: missing completion evidence
+• GENZ_UPLOAD_STORE_FILE: not configured
+• GENZ_UPLOAD_STORE_PASSWORD: not configured
+• GENZ_UPLOAD_KEY_ALIAS: not configured
+• GENZ_UPLOAD_KEY_PASSWORD: not configured

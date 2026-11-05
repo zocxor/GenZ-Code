@@ -1,0 +1,13 @@
+{
+  "source_version": "0.7.0",
+  "base_uploaded_version": "0.5.0",
+  "typecheck": "passed",
+  "tests_passed": 26,
+  "android_js_export": "passed",
+  "png_transparency": "verified",
+  "resource_xml": "valid",
+  "apk_built": false,
+  "dictionary_unchanged": true,
+  "dictionary_rows": 8584,
+  "dictionary_sha256": "18d1cf322f9ce6c127131c9bb7a7661b42c109538c1df18077628891cd60e1f0"
+}
