@@ -1,0 +1,28 @@
+name: Firestore rules tests
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  rules:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare project from the uploaded zip
+        run: |
+          ZIP=$(find . -maxdepth 1 -iname '*.zip' -print | sort | tail -1)
+          [ -n "$ZIP" ] || { echo "::error::Upload GenZ_Code_0.8.0_Source.zip to the repository first."; exit 1; }
+          mkdir -p "$RUNNER_TEMP/p" && unzip -q "$ZIP" -d "$RUNNER_TEMP/p"
+          RULES=$(find "$RUNNER_TEMP/p" -maxdepth 4 -path '*/firebase/firestore.rules' | head -1)
+          [ -n "$RULES" ] || { echo "::error::firebase/firestore.rules not found in the zip."; exit 1; }
+          echo "PROJECT_DIR=$(cd "$(dirname "$RULES")/.." && pwd)" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '21'}
+      - name: Install
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: npm ci --no-audit --no-fund
+      - name: Run the security-rules tests on the official Firestore emulator
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: npx --yes firebase-tools@15 emulators:exec --only firestore --project demo-genz-code "node --test firebase/rules-tests/"
