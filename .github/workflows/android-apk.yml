@@ -112,4 +112,18 @@ jobs:
         env:
           GENZ_UPLOAD_STORE_FILE: ${{ runner.temp }}/upload.keystore
           GENZ_UPLOAD_STORE_PASSWORD: ${{ secrets.GENZ_UPLOAD_STORE_PASSWORD }}
-          GENZ_UPLOAD_KEY_ALIAS: ${{
+          GENZ_UPLOAD_KEY_ALIAS: ${{ secrets.GENZ_UPLOAD_KEY_ALIAS }}
+          GENZ_UPLOAD_KEY_PASSWORD: ${{ secrets.GENZ_UPLOAD_KEY_PASSWORD }}
+        run: chmod +x gradlew && ./gradlew bundleBeta -PgenzVersionCode=$((100 + GITHUB_RUN_NUMBER)) --no-daemon
+      - name: Collect and verify AAB
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/out" && cp android/app/build/outputs/bundle/beta/*.aab "$GITHUB_WORKSPACE/out/"
+          cd "$GITHUB_WORKSPACE/out"; AAB=$(ls *.aab | head -1)
+          { echo "versionCode: $((100 + GITHUB_RUN_NUMBER))"; keytool -printcert -jarfile "$AAB" | grep -E "Owner|SHA256"; ls -la "$AAB"; sha256sum "$AAB"; } | tee aab-report.txt
+      - name: Remove keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/upload.keystore"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: genz-code-play-aab, path: out/, if-no-files-found: warn, retention-days: 14}
