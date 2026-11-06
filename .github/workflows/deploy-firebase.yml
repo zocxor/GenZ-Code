@@ -47,7 +47,7 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Test security rules (deploy is blocked if any test fails)
         working-directory: ${{ env.PROJECT_DIR }}
-        run: npx --yes firebase-tools@15 emulators:exec --only firestore --project demo-genz-code "node --test firebase/rules-tests/"
+        run: npx --yes firebase-tools@15 emulators:exec --only firestore --project demo-genz-code "node --test firebase/rules-tests/rules.test.mjs"
       - name: Build admin portal and public pages
         if: ${{ inputs.target != 'rules-and-indexes' }}
         working-directory: ${{ env.PROJECT_DIR }}/admin
